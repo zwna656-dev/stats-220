@@ -1,0 +1,83 @@
+---
+title: My dynamic report
+output: html_fragment
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, error=FALSE)
+
+```
+
+```{css}
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+}
+
+h2 {
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 8px;
+}
+
+p {
+  color: #333;
+  line-height: 1.6;
+}
+```
+
+## Public Transport Observation Log
+
+This report tracks public transport observations collected over a two-week period in Auckland.Data was logged each time a bus or train/metro was taken, recording the time period, crowding level, wait time, and seat availability.
+
+```{r}
+library(tidyverse)
+
+logged_data <- read_csv(
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRvqi0IotSPUo7aiex_mhzWuy8b09tx3_Tquu4-AZSZi4ksNMYq1Y35POF04gnNvctUTpRFDhOdSWBf/pub?gid=2082785426&single=true&output=csv"
+)
+
+latest_data <- logged_data %>%
+  rename(
+    timestamp   = Timestamp,
+    transport   = `What type of transport did you take?`,
+    time_period = `What time period did you travel?`,
+    crowded     = `How crowded was the vehicle?`,
+    wait_time   = `How many minutes did you wait for the transport?`,
+    seats_full  = `Were the seats full?`
+  )
+
+mean_wait      <- round(mean(latest_data$wait_time, na.rm = TRUE), 1)
+max_wait       <- max(latest_data$wait_time, na.rm = TRUE)
+total_obs      <- nrow(latest_data)
+busiest_period <- latest_data %>%
+  count(time_period) %>%
+  slice_max(n, n = 1) %>%
+  pull(time_period)
+```
+
+A total of `r total_obs` trips were recorded. The average waiting time was `r mean_wait` minutes, with the longest wait being `r max_wait` minutes. The busiest travel period was the `r busiest_period[1]`.
+```{r}
+ggplot(latest_data, aes(x = time_period)) +
+  geom_bar(fill = "steelblue") +
+  labs(
+    title = "Number of Trips by Time Period",
+    x = "Time Period",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 15, hjust = 1))
+```
+```{r}
+ggplot(latest_data, aes(x = crowded)) +
+  geom_bar(fill = "coral") +
+  labs(
+    title = "Distribution of Crowding Levels",
+    x = "Crowding Level",
+    y = "Count"
+  ) +
+  theme_minimal()
+```
